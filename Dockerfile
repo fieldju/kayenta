@@ -1,7 +1,7 @@
 #
 # Builder Image
 #
-FROM gradle:6.5-jdk11 AS builder
+FROM gradle:7.6.1-jdk17 AS builder
 
 # Prep build environment
 ENV GRADLE_USER_HOME=cache
@@ -19,11 +19,11 @@ RUN tar -xf /tmp/workdir/kayenta-web/build/distributions/kayenta.tar -C /opt
 #
 # Release Image
 #
-FROM alpine:3.11
+FROM alpine:3.20
 
 LABEL maintainer="delivery-engineering@netflix.com"
 
-RUN apk --no-cache add --update openjdk11-jre
+RUN apk --no-cache add --update openjdk17-jre
 
 # Set where to look for config from
 ENV KAYENTA_OPTS=-Dspring.config.location=file:/opt/kayenta/config/kayenta.yml

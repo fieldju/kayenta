@@ -40,6 +40,7 @@ subprojects { project ->
     }
 
     test {
+      useJUnitPlatform()
       testLogging {
         exceptionFormat = "full"
       }
@@ -76,8 +77,9 @@ subprojects { project ->
         api 'org.scala-lang:scala-reflect:2.12.12'
         api 'com.typesafe.scala-logging:scala-logging_2.12:3.9.2'
         testImplementation 'org.scalatest:scalatest_2.12:3.0.9'
+        testRuntimeOnly 'org.scalatestplus:junit-5-9_2.12:3.2.16.0'
       }
-      implementation platform("io.spinnaker.orca:orca-bom:$orcaVersion")
+      implementation enforcedPlatform("io.spinnaker.orca:orca-bom:$orcaVersion")
       compileOnly "org.projectlombok:lombok"
       annotationProcessor platform("io.spinnaker.orca:orca-bom:$orcaVersion")
       annotationProcessor "org.projectlombok:lombok"
@@ -94,18 +96,16 @@ subprojects { project ->
 
       api "com.squareup.retrofit:retrofit"
       api "com.squareup.retrofit:converter-jackson"
-      api "com.squareup.okhttp:okhttp"
-      api "com.squareup.okhttp:okhttp-urlconnection"
-      api "com.squareup.okhttp:okhttp-apache"
 
       testImplementation "org.springframework.boot:spring-boot-starter-test"
       testImplementation "org.spockframework:spock-core"
       testImplementation "org.spockframework:spock-spring"
       testImplementation "org.springframework:spring-test"
       testImplementation "org.hamcrest:hamcrest-core"
-      testImplementation "org.codehaus.groovy:groovy-all"
       testRuntimeOnly "cglib:cglib-nodep"
       testRuntimeOnly "org.objenesis:objenesis"
+      testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
+      testRuntimeOnly "org.junit.vintage:junit-vintage-engine" //Required for spock tests to execute along with junit5 tests
     }
   }
 

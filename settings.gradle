@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-enableFeaturePreview("VERSION_ORDERING_V2")
-
 rootProject.name="kayenta"
 
 include 'kayenta-atlas'
@@ -29,6 +27,7 @@ include 'kayenta-gcs'
 include 'kayenta-google'
 include 'kayenta-graphite'
 include 'kayenta-influxdb'
+include 'kayenta-integration'
 include 'kayenta-judge'
 include 'kayenta-mannwhitney'
 include 'kayenta-newrelic-insights'
@@ -38,6 +37,7 @@ include 'kayenta-orca'
 include 'kayenta-prometheus'
 include 'kayenta-s3'
 include 'kayenta-signalfx'
+include 'kayenta-sql'
 include 'kayenta-stackdriver'
 include 'kayenta-standalone-canary-analysis'
 include 'kayenta-wavefront'

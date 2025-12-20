@@ -16,8 +16,8 @@
 
 package com.netflix.kayenta.influxdb.service;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.netflix.kayenta.canary.providers.metrics.InfluxdbCanaryMetricSetQueryConfig;
 import com.netflix.kayenta.influxdb.canary.InfluxDbCanaryScope;
@@ -25,7 +25,7 @@ import com.netflix.kayenta.influxdb.metrics.InfluxDbQueryBuilder;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class InfluxdbQueryBuilderTest {
 
@@ -36,12 +36,11 @@ public class InfluxdbQueryBuilderTest {
     String measurement = "temperature";
 
     InfluxDbCanaryScope canaryScope = createScope();
-    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(measurement, fieldsList());
+    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(measurement, fieldsList(), null);
     String query = queryBuilder.build(queryConfig, canaryScope);
-    assertThat(
-        query,
-        is(
-            "SELECT external, internal FROM temperature WHERE time >= '2010-01-01T12:00:00Z' AND time < '2010-01-01T12:01:40Z'"));
+    assertThat(query)
+        .isEqualTo(
+            "SELECT external, internal FROM temperature WHERE time >= '2010-01-01T12:00:00Z' AND time < '2010-01-01T12:01:40Z'");
   }
 
   private InfluxDbCanaryScope createScope() {
@@ -58,14 +57,15 @@ public class InfluxdbQueryBuilderTest {
     return fields;
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBuild_withInvalidScope() {
     String measurement = "temperature";
 
     InfluxDbCanaryScope canaryScope = createScope();
     canaryScope.setScope("server='myapp-prod-v002'");
-    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(measurement, fieldsList());
-    queryBuilder.build(queryConfig, canaryScope);
+    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(measurement, fieldsList(), null);
+    assertThrows(
+        IllegalArgumentException.class, () -> queryBuilder.build(queryConfig, canaryScope));
   }
 
   @Test
@@ -74,20 +74,20 @@ public class InfluxdbQueryBuilderTest {
 
     InfluxDbCanaryScope canaryScope = createScope();
     canaryScope.setScope("server:myapp-prod-v002");
-    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(measurement, fieldsList());
+    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(measurement, fieldsList(), null);
     String query = queryBuilder.build(queryConfig, canaryScope);
-    assertThat(
-        query,
-        is(
-            "SELECT external, internal FROM temperature WHERE time >= '2010-01-01T12:00:00Z' AND time < '2010-01-01T12:01:40Z' AND server='myapp-prod-v002'"));
+    assertThat(query)
+        .isEqualTo(
+            "SELECT external, internal FROM temperature WHERE time >= '2010-01-01T12:00:00Z' AND time < '2010-01-01T12:01:40Z' AND server = 'myapp-prod-v002'");
   }
 
   private InfluxdbCanaryMetricSetQueryConfig queryConfig(
-      String measurement, List<String> fieldsList) {
+      String measurement, List<String> fieldsList, String customInlineTemplate) {
     InfluxdbCanaryMetricSetQueryConfig queryConfig =
         InfluxdbCanaryMetricSetQueryConfig.builder()
             .metricName(measurement)
             .fields(fieldsList)
+            .customInlineTemplate(customInlineTemplate)
             .build();
     return queryConfig;
   }
@@ -98,11 +98,72 @@ public class InfluxdbQueryBuilderTest {
 
     InfluxDbCanaryScope canaryScope = createScope();
     canaryScope.setScope("server:myapp-prod-v002");
-    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(measurement, null);
+    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(measurement, null, null);
     String query = queryBuilder.build(queryConfig, canaryScope);
-    assertThat(
-        query,
-        is(
-            "SELECT *::field FROM temperature WHERE time >= '2010-01-01T12:00:00Z' AND time < '2010-01-01T12:01:40Z' AND server='myapp-prod-v002'"));
+    assertThat(query)
+        .isEqualTo(
+            "SELECT *::field FROM temperature WHERE time >= '2010-01-01T12:00:00Z' AND time < '2010-01-01T12:01:40Z' AND server = 'myapp-prod-v002'");
+  }
+
+  @Test
+  public void testBuild_customInlineTemplateWithMissingRequiredVariables() {
+    // missing required variables are: {scope} and {timeFilter}
+    String inLineQuery = "SELECT count FROM measurement";
+
+    InfluxDbCanaryScope canaryScope = createScope();
+    canaryScope.setScope("server:myapp-prod-v002");
+    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(null, null, inLineQuery);
+    assertThrows(
+        IllegalArgumentException.class, () -> queryBuilder.build(queryConfig, canaryScope));
+  }
+
+  @Test
+  public void testBuild_customInlineTemplateWithRequiredVariables() {
+    String inLineQuery =
+        "SELECT count FROM measurement WHERE label1 = 'value1' AND $\\{timeFilter} AND $\\{scope}";
+
+    InfluxDbCanaryScope canaryScope = createScope();
+    canaryScope.setScope("server:myapp-prod-v002");
+    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(null, null, inLineQuery);
+    String query = queryBuilder.build(queryConfig, canaryScope);
+    assertThat(query)
+        .isEqualTo(
+            "SELECT count FROM measurement WHERE label1 = 'value1' AND time >= '2010-01-01T12:00:00Z' AND time < '2010-01-01T12:01:40Z' AND server = 'myapp-prod-v002'");
+  }
+
+  @Test
+  public void testBuild_customInlineTemplateWithInvalidAdditionalQuery() {
+    String inLineQuery =
+        "SELECT sum(count) FROM web_requests WHERE $\\{scope} AND $\\{timeFilter} GROUP BY time(1m); DROP DATABASE metrics";
+
+    InfluxDbCanaryScope canaryScope = createScope();
+    canaryScope.setScope("server:myapp-prod-v002");
+    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(null, null, inLineQuery);
+    assertThrows(
+        IllegalArgumentException.class, () -> queryBuilder.build(queryConfig, canaryScope));
+  }
+
+  @Test
+  public void testBuild_customInlineTemplateWithInvalidQueryType() {
+    String inLineQuery =
+        "SELECT sum(count) FROM web_requests WHERE $\\{scope} AND $\\{timeFilter} GROUP BY time(1m); SHOW SERIES";
+
+    InfluxDbCanaryScope canaryScope = createScope();
+    canaryScope.setScope("server:myapp-prod-v002");
+    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(null, null, inLineQuery);
+    assertThrows(
+        IllegalArgumentException.class, () -> queryBuilder.build(queryConfig, canaryScope));
+  }
+
+  @Test
+  public void testBuild_customInlineTemplateWithInvalidLineComments() {
+    String inLineQuery =
+        "'SELECT count FROM web_requests WHERE $\\{scope} AND $\\{timeFilter}' or 1=1--";
+
+    InfluxDbCanaryScope canaryScope = createScope();
+    canaryScope.setScope("server:myapp-prod-v002");
+    InfluxdbCanaryMetricSetQueryConfig queryConfig = queryConfig(null, null, inLineQuery);
+    assertThrows(
+        IllegalArgumentException.class, () -> queryBuilder.build(queryConfig, canaryScope));
   }
 }

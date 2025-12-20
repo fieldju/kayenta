@@ -16,7 +16,7 @@
 package com.netflix.kayenta.tests;
 
 import io.restassured.RestAssured;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
 public class SwaggerTest extends BaseIntegrationTest {
@@ -25,7 +25,7 @@ public class SwaggerTest extends BaseIntegrationTest {
   public void swaggerUiIsPresent() {
     RestAssured.given()
         .port(serverPort)
-        .get("/swagger-ui.html")
+        .get("/swagger-ui/index.html")
         .prettyPeek()
         .then()
         .assertThat()

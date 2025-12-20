@@ -21,21 +21,20 @@ import static org.mockito.Mockito.when;
 
 import com.netflix.kayenta.prometheus.config.PrometheusConfigurationProperties;
 import com.netflix.kayenta.prometheus.config.PrometheusManagedAccount;
-import com.netflix.kayenta.prometheus.security.PrometheusNamedAccountCredentials;
 import com.netflix.kayenta.prometheus.service.PrometheusRemoteService;
 import com.netflix.kayenta.retrofit.config.RemoteService;
 import com.netflix.kayenta.security.AccountCredentialsRepository;
 import java.util.Arrays;
 import java.util.Optional;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.actuate.health.Status;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
+@ExtendWith(MockitoExtension.class)
 public class PrometheusHealthJobTest {
 
   private static final String PROM_ACCOUNT_1 = "a1";
@@ -49,7 +48,7 @@ public class PrometheusHealthJobTest {
 
   @InjectMocks PrometheusHealthJob healthJob;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     when(prometheusConfigurationProperties.getAccounts())
         .thenReturn(
@@ -60,7 +59,7 @@ public class PrometheusHealthJobTest {
     when(accountCredentialsRepository.getOne(PROM_ACCOUNT_1))
         .thenReturn(
             Optional.of(
-                PrometheusNamedAccountCredentials.builder()
+                PrometheusManagedAccount.builder()
                     .name(PROM_ACCOUNT_1)
                     .prometheusRemoteService(PROM_REMOTE_1)
                     .build()));
@@ -68,7 +67,7 @@ public class PrometheusHealthJobTest {
     when(accountCredentialsRepository.getOne(PROM_ACCOUNT_2))
         .thenReturn(
             Optional.of(
-                PrometheusNamedAccountCredentials.builder()
+                PrometheusManagedAccount.builder()
                     .name(PROM_ACCOUNT_2)
                     .prometheusRemoteService(PROM_REMOTE_2)
                     .build()));

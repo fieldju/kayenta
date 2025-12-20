@@ -173,15 +173,18 @@ dependencies {
  //   testImplementation "com.fasterxml.jackson.core:jackson-databind"
 
     // Integration Test dependencies
-    integrationTestCompile sourceSets.main.output
-    integrationTestCompile configurations.testImplementation
-    integrationTestCompile sourceSets.test.output
-    integrationTestRuntime configurations.testRuntime
-    integrationTestCompile project(':kayenta-web')
+    integrationTestImplementation sourceSets.main.output
+    integrationTestImplementation sourceSets.test.output
+    integrationTestImplementation project(':kayenta-web')
 
     // Apache 2.0 https://github.com/rest-assured/rest-assured/blob/master/LICENSE
-    integrationTestCompile 'io.rest-assured:rest-assured:4.3.2'
+    integrationTestImplementation "io.rest-assured:rest-assured"
     integrationTestAnnotationProcessor platform("io.spinnaker.orca:orca-bom:$orcaVersion")
     integrationTestAnnotationProcessor "org.projectlombok:lombok"
     integrationTestCompileOnly "org.projectlombok:lombok"
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestImplementation.extendsFrom testRuntime
 }

@@ -22,16 +22,14 @@ import com.netflix.kayenta.prometheus.health.PrometheusHealthIndicator;
 import com.netflix.kayenta.prometheus.health.PrometheusHealthJob;
 import com.netflix.kayenta.prometheus.metrics.PrometheusMetricDescriptorsCache;
 import com.netflix.kayenta.prometheus.metrics.PrometheusMetricsService;
-import com.netflix.kayenta.prometheus.security.PrometheusCredentials;
-import com.netflix.kayenta.prometheus.security.PrometheusNamedAccountCredentials;
 import com.netflix.kayenta.prometheus.service.PrometheusRemoteService;
 import com.netflix.kayenta.retrofit.config.RetrofitClientFactory;
 import com.netflix.kayenta.security.AccountCredentials;
 import com.netflix.kayenta.security.AccountCredentialsRepository;
-import com.squareup.okhttp.OkHttpClient;
 import java.io.IOException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.OkHttpClient;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.condition.AllNestedConditions;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -87,20 +85,6 @@ public class PrometheusConfiguration {
       log.info("Registering Prometheus account {} with supported types {}.", name, supportedTypes);
 
       try {
-        PrometheusCredentials prometheusCredentials =
-            PrometheusCredentials.builder()
-                .username(prometheusManagedAccount.getUsername())
-                .password(prometheusManagedAccount.getPassword())
-                .usernamePasswordFile(prometheusManagedAccount.getUsernamePasswordFile())
-                .bearerToken(prometheusManagedAccount.getBearerToken())
-                .build();
-        PrometheusNamedAccountCredentials.PrometheusNamedAccountCredentialsBuilder
-            prometheusNamedAccountCredentialsBuilder =
-                PrometheusNamedAccountCredentials.builder()
-                    .name(name)
-                    .endpoint(prometheusManagedAccount.getEndpoint())
-                    .credentials(prometheusCredentials);
-
         if (!CollectionUtils.isEmpty(supportedTypes)) {
           if (supportedTypes.contains(AccountCredentials.Type.METRICS_STORE)) {
             PrometheusRemoteService prometheusRemoteService =
@@ -114,16 +98,11 @@ public class PrometheusConfiguration {
                     prometheusManagedAccount.getUsernamePasswordFile(),
                     prometheusManagedAccount.getBearerToken());
 
-            prometheusNamedAccountCredentialsBuilder.prometheusRemoteService(
-                prometheusRemoteService);
+            prometheusManagedAccount.setPrometheusRemoteService(prometheusRemoteService);
           }
-
-          prometheusNamedAccountCredentialsBuilder.supportedTypes(supportedTypes);
         }
 
-        PrometheusNamedAccountCredentials prometheusNamedAccountCredentials =
-            prometheusNamedAccountCredentialsBuilder.build();
-        accountCredentialsRepository.save(name, prometheusNamedAccountCredentials);
+        accountCredentialsRepository.save(name, prometheusManagedAccount);
         prometheusMetricsServiceBuilder.accountName(name);
       } catch (IOException e) {
         log.error("Problem registering Prometheus account {}:", name, e);

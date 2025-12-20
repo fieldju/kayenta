@@ -1,12 +1,5 @@
 apply plugin: 'io.spinnaker.package'
 
-ext {
-  springConfigLocation = System.getProperty('spring.config.additional-location', "${System.getProperty('user.home')}/.spinnaker/".toString())
-}
-
-run {
-  systemProperty('spring.config.additional-location', project.springConfigLocation)
-}
 mainClassName='com.netflix.kayenta.Main'
 
 configurations.all {
@@ -33,12 +26,14 @@ dependencies {
   api project(':kayenta-prometheus')
   api project(':kayenta-s3')
   api project(':kayenta-signalfx')
+  api project(':kayenta-sql')
   api project(':kayenta-stackdriver')
   api project(':kayenta-standalone-canary-analysis')
   api project(':kayenta-wavefront')
 
   api "org.springframework.boot:spring-boot-starter-actuator"
   api "io.spinnaker.kork:kork-web"
+  implementation "io.spinnaker.kork:kork-config"
   implementation "io.spinnaker.kork:kork-plugins"
   runtimeOnly "io.spinnaker.kork:kork-secrets-aws"
   runtimeOnly "io.spinnaker.kork:kork-secrets-gcp"
